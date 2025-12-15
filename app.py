@@ -23,17 +23,17 @@ client.loop_start()
 # -----------------------------
 st.title("Commande du système d’aération")
 
-st.header(" Gestion du système")
+st.header("Mise en service ")
 
 col1, col2 = st.columns(2)
 
 with col1:
-    if st.button(" Mise en service"):
+    if st.button("🟢 Mise en service"):
         client.publish(TOPIC_SYSTEM, "1")
         st.success("Système mis en service")
 
 with col2:
-    if st.button(" Arrêt du système"):
+    if st.button("🔴 Arrêt du système"):
         client.publish(TOPIC_SYSTEM, "0")
         st.error("Système arrêté")
 
@@ -41,7 +41,7 @@ with col2:
 # =============================
 # VENTILATEUR D’ADMISSION
 # =============================
-st.header("🌬️ Ventilateur d’admission")
+st.header(" Ventilateur d’admission")
 
 speed_adm = st.slider(
     "Vitesse admission (%)",
@@ -72,5 +72,3 @@ client.publish(TOPIC_EXT_SPEED, speed_ext)
 st.info(f"Vitesse extraction envoyée : {speed_ext}%")
 
 
-st.write("---")
-st.info("Les commandes MQTT sont envoyées vers Node-RED en temps réel.")
