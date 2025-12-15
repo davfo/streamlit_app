@@ -4,7 +4,7 @@ import paho.mqtt.client as mqtt
 # -----------------------------
 # CONFIG MQTT
 # -----------------------------
-BROKER = "192.168.137.1"    # Adresse de ton broker Node-RED/Mosquitto
+BROKER = "test.mosquitto.org"    # Adresse de ton broker Node-RED/Mosquitto
 PORT = 1883
 TOPIC_CMD = "dashboard/cmd"  # Topic de commande
 
