@@ -4,14 +4,12 @@ import paho.mqtt.client as mqtt
 # -----------------------------
 # CONFIG MQTT
 # -----------------------------
-BROKER = "test.mosquitto.org" 
+BROKER = "test.mosquitto.org"
 PORT = 1883
 
-TOPIC_ADM_CMD = "dashboard/adm/cmd"         # ON/OFF ventilateur admission
-TOPIC_ADM_SPEED = "dashboard/adm/speed"     # vitesse ventilateur admission
-
-TOPIC_EXT_CMD = "dashboard/ext/cmd"         # ON/OFF ventilateur extraction
-TOPIC_EXT_SPEED = "dashboard/ext/speed"     # vitesse ventilateur extraction
+TOPIC_SYSTEM = "dashboard/system/cmd"       # Commande globale ON/OFF du système
+TOPIC_ADM_SPEED = "dashboard/adm/speed"     # Vitesse ventilateur admission
+TOPIC_EXT_SPEED = "dashboard/ext/speed"     # Vitesse ventilateur extraction
 
 # -----------------------------
 # MQTT : Initialisation
@@ -24,22 +22,26 @@ client.loop_start()
 # INTERFACE STREAMLIT
 # -----------------------------
 st.title("Commande du système d’aération")
-st.write("Contrôle séparé des ventilateurs **d’admission** et **d’extraction** via MQTT.")
 
-# =============================
-# VENTILATEUR D’ADMISSION
-# =============================
-st.header("Ventilateur d’admission")
+st.header(" Gestion du système")
 
 col1, col2 = st.columns(2)
 
 with col1:
-    if st.button("Admission ON"):
-        client.publish(TOPIC_ADM_CMD, "1")
+    if st.button(" Mise en service"):
+        client.publish(TOPIC_SYSTEM, "1")
+        st.success("Système mis en service")
 
 with col2:
-    if st.button("Admission OFF"):
-        client.publish(TOPIC_ADM_CMD, "0")
+    if st.button(" Arrêt du système"):
+        client.publish(TOPIC_SYSTEM, "0")
+        st.error("Système arrêté")
+
+
+# =============================
+# VENTILATEUR D’ADMISSION
+# =============================
+st.header("🌬️ Ventilateur d’admission")
 
 speed_adm = st.slider(
     "Vitesse admission (%)",
@@ -50,22 +52,13 @@ speed_adm = st.slider(
 )
 
 client.publish(TOPIC_ADM_SPEED, speed_adm)
-st.success(f"Vitesse admission envoyée : {speed_adm}%")
+st.info(f"Vitesse admission envoyée : {speed_adm}%")
+
 
 # =============================
 # VENTILATEUR D’EXTRACTION
 # =============================
-st.header("Ventilateur d’extraction")
-
-col3, col4 = st.columns(2)
-
-with col3:
-    if st.button("Extraction ON"):
-        client.publish(TOPIC_EXT_CMD, "1")
-
-with col4:
-    if st.button("Extraction OFF"):
-        client.publish(TOPIC_EXT_CMD, "0")
+st.header("🌬️ Ventilateur d’extraction")
 
 speed_ext = st.slider(
     "Vitesse extraction (%)",
@@ -76,6 +69,8 @@ speed_ext = st.slider(
 )
 
 client.publish(TOPIC_EXT_SPEED, speed_ext)
-st.success(f"Vitesse extraction envoyée : {speed_ext}%")
+st.info(f"Vitesse extraction envoyée : {speed_ext}%")
 
-st.info("Les commandes sont envoyées en temps réel vers Node-RED via MQTT.")
+
+st.write("---")
+st.info("Les commandes MQTT sont envoyées vers Node-RED en temps réel.")
