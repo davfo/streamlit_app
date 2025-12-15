@@ -1,7 +1,10 @@
 import streamlit as st
 import paho.mqtt.client as mqtt
 
-BROKER = "172.161.134.198"   # ex: 192.168.1.50
+# -----------------------------
+# CONFIG MQTT
+# -----------------------------
+BROKER = "172.161.134.198"  # ex: 192.168.1.50
 PORT = 1883
 
 TOPIC_SYSTEM = "dashboard/system/cmd"
@@ -19,6 +22,15 @@ def get_mqtt_client():
     return client
 
 client = get_mqtt_client()
+
+# -----------------------------
+# SESSION STATE INIT
+# -----------------------------
+if "adm_speed_prev" not in st.session_state:
+    st.session_state.adm_speed_prev = 50
+
+if "ext_speed_prev" not in st.session_state:
+    st.session_state.ext_speed_prev = 50
 
 # -----------------------------
 # UI STREAMLIT
@@ -43,16 +55,33 @@ with col2:
         st.error("Système OFF")
 
 # =============================
-# VENTILATEURS
+# VENTILATEUR ADMISSION
 # =============================
-st.header("Ventilateurs")
+st.header("Ventilateur d’admission")
 
-speed_adm = st.slider("Admission (%)", 0, 100, 50)
-speed_ext = st.slider("Extraction (%)", 0, 100, 50)
+adm_speed = st.slider(
+    "Vitesse admission (%)",
+    0, 100, 50,
+    key="adm_speed"
+)
 
-if st.button("📤 Envoyer vitesses"):
-    client.publish(TOPIC_ADM, speed_adm)
-    client.publish(TOPIC_EXT, speed_ext)
-    st.info("Vitesses envoyées via MQTT")
+if adm_speed != st.session_state.adm_speed_prev:
+    client.publish(TOPIC_ADM, adm_speed)
+    st.session_state.adm_speed_prev = adm_speed
+    st.info(f"Admission → {adm_speed}%")
 
+# =============================
+# VENTILATEUR EXTRACTION
+# =============================
+st.header("Ventilateur d’extraction")
 
+ext_speed = st.slider(
+    "Vitesse extraction (%)",
+    0, 100, 50,
+    key="ext_speed"
+)
+
+if ext_speed != st.session_state.ext_speed_prev:
+    client.publish(TOPIC_EXT, ext_speed)
+    st.session_state.ext_speed_prev = ext_speed
+    st.info(f"Extraction → {ext_speed}%")
