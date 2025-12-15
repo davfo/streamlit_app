@@ -4,7 +4,8 @@ import requests
 # -----------------------------
 # CONFIG NODE-RED
 # -----------------------------
-NODE_RED_URL = "http://172.161.134.198:1880/api/control"
+NODE_RED_URL = "https://nodered.david.work.gd/api/control"
+
 
 
 st.set_page_config(page_title="Commande Aération", layout="centered")
