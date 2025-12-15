@@ -4,9 +4,11 @@ import paho.mqtt.client as mqtt
 # -----------------------------
 # CONFIG MQTT
 # -----------------------------
-BROKER = "test.mosquitto.org"    # Adresse de ton broker Node-RED/Mosquitto
+BROKER = "test.mosquitto.org"    
 PORT = 1883
-TOPIC_CMD = "dashboard/cmd"  # Topic de commande
+
+TOPIC_CMD = "dashboard/cmd"            # Commande ON/OFF
+TOPIC_SPEED = "dashboard/vent_speed"   # Commande vitesse ventilateur
 
 # -----------------------------
 # MQTT : Initialisation
@@ -18,22 +20,36 @@ client.loop_start()
 # -----------------------------
 # INTERFACE STREAMLIT
 # -----------------------------
-st.title("Dashboard Commande Ventilation")
+st.title("Dashboard de Commande du système d'aération")
 
-st.subheader("Contrôle des ventilateurs")
+st.subheader("Contrôle général")
 
-# Commande Extraction
-if st.button("Extraction ON"):
-    client.publish(TOPIC_CMD, "extraction=1")
+# Commande de mise en service
+col1, col2 = st.columns(2)
 
-if st.button("Extraction OFF"):
-    client.publish(TOPIC_CMD, "extraction=0")
+with col1:
+    if st.button("ON"):
+        client.publish(TOPIC_CMD, "service=1")
 
-# Commande Admission
-if st.button("Admission ON"):
-    client.publish(TOPIC_CMD, "admission=1")
+with col2:
+    if st.button("OFF"):
+        client.publish(TOPIC_CMD, "service=0")
 
-if st.button("Admission OFF"):
-    client.publish(TOPIC_CMD, "admission=0")
+# -----------------------------
+# SLIDER DE VITESSE
+# -----------------------------
+st.subheader("Réglage de la vitesse du ventilateur")
+
+vent_speed = st.slider(
+    "Vitesse du ventilateur (%)",
+    min_value=0,
+    max_value=100,
+    value=50
+)
+
+# Envoi MQTT à chaque modification
+client.publish(TOPIC_SPEED, vent_speed)
+
+st.success(f"Vitesse envoyée : {vent_speed}%")
 
 st.info("Les commandes sont envoyées vers Node-RED via MQTT.")
