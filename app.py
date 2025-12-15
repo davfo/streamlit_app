@@ -1,87 +1,62 @@
 import streamlit as st
-import paho.mqtt.client as mqtt
+import requests
 
 # -----------------------------
-# CONFIG MQTT
+# CONFIG NODE-RED
 # -----------------------------
-BROKER = "172.161.134.198"  # ex: 192.168.1.50
-PORT = 1883
+NODE_RED_URL = "http://IP_NODE_RED:1880/api/control"
+# Exemple local : http://localhost:1880/api/control
 
-TOPIC_SYSTEM = "dashboard/system/cmd"
-TOPIC_ADM = "dashboard/adm/speed"
-TOPIC_EXT = "dashboard/ext/speed"
+st.set_page_config(page_title="Commande Aération", layout="centered")
 
-# -----------------------------
-# MQTT CLIENT (singleton)
-# -----------------------------
-@st.cache_resource
-def get_mqtt_client():
-    client = mqtt.Client()
-    client.connect(BROKER, PORT, 60)
-    client.loop_start()
-    return client
-
-client = get_mqtt_client()
-
-# -----------------------------
-# SESSION STATE INIT
-# -----------------------------
-if "adm_speed_prev" not in st.session_state:
-    st.session_state.adm_speed_prev = 50
-
-if "ext_speed_prev" not in st.session_state:
-    st.session_state.ext_speed_prev = 50
-
-# -----------------------------
-# UI STREAMLIT
-# -----------------------------
-st.title("Commande MQTT – Système d’aération")
+st.title("🌀 Commande du système d’aération")
 
 # =============================
-# SYSTEME
+# SYSTEME ON / OFF
 # =============================
 st.header("Système")
 
 col1, col2 = st.columns(2)
 
+system_state = None
+
 with col1:
     if st.button("🟢 Mise en service"):
-        client.publish(TOPIC_SYSTEM, "1")
-        st.success("Système ON")
+        system_state = 1
 
 with col2:
     if st.button("🔴 Arrêt du système"):
-        client.publish(TOPIC_SYSTEM, "0")
-        st.error("Système OFF")
+        system_state = 0
 
 # =============================
-# VENTILATEUR ADMISSION
+# VENTILATEURS
 # =============================
-st.header("Ventilateur d’admission")
+st.header("Ventilateurs")
 
 adm_speed = st.slider(
     "Vitesse admission (%)",
-    0, 100, 50,
-    key="adm_speed"
+    0, 100, 50
 )
-
-if adm_speed != st.session_state.adm_speed_prev:
-    client.publish(TOPIC_ADM, adm_speed)
-    st.session_state.adm_speed_prev = adm_speed
-    st.info(f"Admission → {adm_speed}%")
-
-# =============================
-# VENTILATEUR EXTRACTION
-# =============================
-st.header("Ventilateur d’extraction")
 
 ext_speed = st.slider(
     "Vitesse extraction (%)",
-    0, 100, 50,
-    key="ext_speed"
+    0, 100, 50
 )
 
-if ext_speed != st.session_state.ext_speed_prev:
-    client.publish(TOPIC_EXT, ext_speed)
-    st.session_state.ext_speed_prev = ext_speed
-    st.info(f"Extraction → {ext_speed}%")
+# =============================
+# ENVOI AUTOMATIQUE HTTP
+# =============================
+data = {
+    "system": system_state,
+    "adm_speed": adm_speed,
+    "ext_speed": ext_speed
+}
+
+try:
+    response = requests.post(NODE_RED_URL, json=data, timeout=2)
+    if response.status_code == 200:
+        st.success("Commande envoyée à Node-RED")
+    else:
+        st.error(f"Erreur HTTP : {response.status_code}")
+except Exception as e:
+    st.error("Impossible de joindre Node-RED")
