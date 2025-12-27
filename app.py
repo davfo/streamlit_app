@@ -53,7 +53,7 @@ st.header("Système")
 col1, col2 = st.columns(2)
 
 with col1:
-    if st.button("🟢 Mise en service"):
+    if st.button("🟢 Mise enn service"):
         st.session_state.system_state = 1
 
 with col2:
