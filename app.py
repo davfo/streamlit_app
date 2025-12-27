@@ -67,8 +67,8 @@ st.info(f"État système : {'ON' if st.session_state.system_state == 1 else 'OFF
 # ============================================================
 st.header("Ventilateurs")
 
-adm_speed = st.slider("Vitesse admission (%)", 0, 100, 50, key="adm_speed")
-ext_speed = st.slider("Vitesse extraction (%)", 0, 100, 50, key="ext_speed")
+adm_speed = st.slider("Vitesse admission (%)", 0, 255, 50, key="adm_speed")
+ext_speed = st.slider("Vitesse extraction (%)", 0, 255, 50, key="ext_speed")
 
 # ============================================================
 # ENVOI AUTOMATIQUE HTTP (COMMANDES)
