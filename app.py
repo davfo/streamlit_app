@@ -28,7 +28,7 @@ try:
     if r.status_code == 200:
         data = r.json()
         c1, c2, c3 = st.columns(3)
-        c1.metric("🌡 Température", f"{data.get('temperature','—')} °C")
+        c1.metric("🌡 Températures", f"{data.get('temperature','—')} °C")
         c2.metric("💧 Humidité", f"{data.get('humidity','—')} %")
         co2 = data.get("co2", -1)
         c3.metric("🧪 CO₂", "N/A" if co2 < 0 else f"{co2} ppm")
