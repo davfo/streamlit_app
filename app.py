@@ -58,7 +58,7 @@ with st.form("commande_form", clear_on_submit=False):
     with col1:
         system_on = st.form_submit_button("🟢 Mise en service")
     with col2:
-        system_off = st.form_submit_button("🔴 Mise hors service")
+        system_off = st.form_submit_button("🔴 Arrêt du système")
 
     if system_on:
         st.session_state.system_state = 1
