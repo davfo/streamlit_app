@@ -9,7 +9,7 @@ NODE_RED_CMD_URL = "https://nodered.david.work.gd/api/control"
 NODE_RED_DATA_URL = "https://nodered.david.work.gd/api/data"
 
 st.set_page_config(page_title="Commande Aération", layout="centered")
-st.title("🌀 Commande du système d’aération")
+st.title("🌀 Commandes du système d’aération")
 
 # =============================
 # INIT SESSION (UNE SEULE FOIS)
@@ -24,7 +24,7 @@ if "initialized" not in st.session_state:
 # =============================
 # LECTURE DONNÉES (SANS POST)
 # =============================
-st.header("📊 Données environnementales")
+st.header("📊 Données environnementale")
 
 try:
     r = requests.get(NODE_RED_DATA_URL, timeout=2)
