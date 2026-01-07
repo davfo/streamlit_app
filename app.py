@@ -1,121 +1,85 @@
 import streamlit as st
 import requests
-import json
+import time
 
 # =============================
 # CONFIG NODE-RED
 # =============================
-NODE_RED_CMD_URL = "https://nodered.david.work.gd/api/control"
-NODE_RED_DATA_URL = "https://nodered.david.work.gd/api/data"
+NODE_RED_CMD_URL = "https://nodered.david.work.gd/api/control"  # POST
+NODE_RED_DATA_URL = "https://nodered.david.work.gd/api/data"   # GET
 
 st.set_page_config(page_title="Commande Aération", layout="centered")
-st.title("🌀 Commandes du système d’aération")
+st.title("🌀 Commande du système d’aération")
 
 # =============================
-# INIT SESSION (UNE SEULE FOIS)
+# MÉMOIRE STREAMLIT
 # =============================
-if "initialized" not in st.session_state:
-    st.session_state.initialized = True
-    st.session_state.system_state = 0
-    st.session_state.adm_speed = 50
-    st.session_state.ext_speed = 50
-    st.session_state.last_sent = None
+if "system_state" not in st.session_state:
+    st.session_state.system_state = 0  # 0 = arrêt
+if "last_cmd" not in st.session_state:
+    st.session_state.last_cmd = None
+if "last_send_time" not in st.session_state:
+    st.session_state.last_send_time = 0
 
 # =============================
-# LECTURE DONNÉES (SANS POST)
+# LECTURE DES DONNÉES
 # =============================
-st.header("📊 Données environnementale")
+st.header("📊 Données environnementales")
 
 try:
     r = requests.get(NODE_RED_DATA_URL, timeout=2)
-    if r.status_code == 200:
-        data = r.json()
-        colT, colH, colC = st.columns(3)
+    data = r.json()
 
-        colT.metric("🌡 Température", f"{data.get('temperature','—')} °C")
-        colH.metric("💧 Humidité", f"{data.get('humidity','—')} %")
+    st.metric("🌡 Température (°C)", data.get("temp", "--"))
+    st.metric("💧 Humidité (%)", data.get("hum", "--"))
+    st.metric("🫁 CO₂ (ppm)", data.get("co2", "--"))
+    st.write("Mode actuel :", data.get("mode", "—"))
 
-        co2 = data.get("co2", -1)
-        colC.metric(
-            "🧪 CO₂",
-            "Non disponible" if co2 is None or co2 < 0 else f"{co2} ppm"
-        )
-    else:
-        st.warning("Aucune donnée")
-except Exception:
-    st.error("❌ Données indisponibles")
+except Exception as e:
+    st.error("❌ Impossible de récupérer les données")
 
 st.divider()
 
 # =============================
-# FORMULAIRE DE COMMANDE (BLOQUANT)
+# COMMANDE SYSTEME
 # =============================
-st.header("⚙️ Commande système")
+st.header("🎛 Commande")
 
-with st.form("commande_form", clear_on_submit=False):
+system_on = st.toggle(
+    "Activer le système",
+    value=bool(st.session_state.system_state)
+)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        system_on = st.form_submit_button("🟢 Mise en service")
-    with col2:
-        system_off = st.form_submit_button("🔴 Arrêt du système")
-
-    if system_on:
-        st.session_state.system_state = 1
-    if system_off:
-        st.session_state.system_state = 0
-
-    st.markdown(
-        f"**État système : {'ON' if st.session_state.system_state == 1 else 'OFF'}**"
-    )
-
-    adm_speed = st.slider(
-        "Vitesse admission (%)",
-        0, 255,
-        st.session_state.adm_speed
-    )
-
-    ext_speed = st.slider(
-        "Vitesse extraction (%)",
-        0, 255,
-        st.session_state.ext_speed
-    )
-
-    envoyer = st.form_submit_button("📤 Envoyer la commande")
-
-    if envoyer:
-        payload = {
-            "system": st.session_state.system_state,
-            "adm_speed": adm_speed,
-            "ext_speed": ext_speed
-        }
-
-        if payload != st.session_state.last_sent:
-            try:
-                r = requests.post(
-                    NODE_RED_CMD_URL,
-                    json=payload,
-                    timeout=2
-                )
-                if r.status_code == 200:
-                    st.success("✅ Commande envoyée")
-                    st.session_state.last_sent = payload
-                    st.session_state.adm_speed = adm_speed
-                    st.session_state.ext_speed = ext_speed
-                else:
-                    st.error(f"❌ Erreur HTTP {r.status_code}")
-            except Exception:
-                st.error("❌ Node-RED injoignable")
-        else:
-            st.info("ℹ️ Commande déjà envoyée")
+adm_speed = st.slider("Ventilateur admission (%)", 0, 100, 50)
+ext_speed = st.slider("Ventilateur extraction (%)", 0, 100, 50)
 
 # =============================
-# DEBUG
+# BOUTON ENVOI
 # =============================
-with st.expander("🛠 Debug"):
-    st.json({
-        "system": st.session_state.system_state,
-        "adm_speed": st.session_state.adm_speed,
-        "ext_speed": st.session_state.ext_speed,
-        "last_sent": st.session_state.last_sent
-    })
+if st.button("📤 Envoyer la commande"):
+    payload = {
+        "system": int(system_on),
+        "adm_speed": adm_speed,
+        "ext_speed": ext_speed
+    }
+
+    now = time.time()
+
+    # 🔒 PROTECTION CONTRE LES ENVOIS EN BOUCLE
+    if payload != st.session_state.last_cmd and now - st.session_state.last_send_time > 2:
+        try:
+            res = requests.post(NODE_RED_CMD_URL, json=payload, timeout=2)
+
+            if res.status_code == 200:
+                st.success("✅ Commande envoyée")
+                st.session_state.last_cmd = payload
+                st.session_state.last_send_time = now
+                st.session_state.system_state = int(system_on)
+            else:
+                st.error("❌ Erreur côté Node-RED")
+
+        except Exception:
+            st.error("❌ Node-RED injoignable")
+    else:
+        st.info("ℹ️ Commande identique ignorée")
+
