@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import time
 
-# =============================
+# ============================
 # CONFIG NODE-RED
 # =============================
 NODE_RED_CMD_URL = "https://nodered.david.work.gd/api/control"  # POST
