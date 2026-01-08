@@ -24,19 +24,42 @@ if "last_send_time" not in st.session_state:
 # =============================
 # LECTURE DES DONNÉES
 # =============================
+# =============================
+# LECTURE DES DONNÉES NODE-RED
+# =============================
 st.header("📊 Données environnementales")
 
 try:
     r = requests.get(NODE_RED_DATA_URL, timeout=2)
     data = r.json()
 
-    st.metric("🌡 Température (°C)", data.get("temp", "--"))
-    st.metric("💧 Humidité (%)", data.get("hum", "--"))
-    st.metric("🫁 CO₂ (ppm)", data.get("co2", "--"))
-    st.write("Mode actuel :", data.get("mode", "—"))
+    temp = data.get("temp")
+    hum  = data.get("hum")
+    co2  = data.get("co2")
+    mode = data.get("mode", "—")
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric(
+        "🌡 Température (°C)",
+        f"{temp:.1f}" if isinstance(temp, (int, float)) else "--"
+    )
+
+    col2.metric(
+        "💧 Humidité (%)",
+        f"{hum:.0f}" if isinstance(hum, (int, float)) else "--"
+    )
+
+    col3.metric(
+        "🫁 CO₂ (ppm)",
+        f"{co2}" if isinstance(co2, (int, float)) else "--"
+    )
+
+    st.info(f"Mode actuel : **{mode}**")
 
 except Exception as e:
-    st.error("❌ Impossible de récupérer les données")
+    st.error("❌ Impossible de récupérer les données depuis Node-RED")
+
 
 st.divider()
 
