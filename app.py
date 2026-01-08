@@ -33,8 +33,8 @@ try:
     r = requests.get(NODE_RED_DATA_URL, timeout=2)
     data = r.json()
 
-    temp = data.get("temp")
-    hum  = data.get("hum")
+    temp = data.get("temperature")
+    hum  = data.get("humidite")
     co2  = data.get("co2")
     mode = data.get("mode", "—")
 
@@ -59,6 +59,7 @@ try:
 
 except Exception as e:
     st.error("❌ Impossible de récupérer les données depuis Node-RED")
+
 
 
 st.divider()
