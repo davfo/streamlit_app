@@ -4,16 +4,16 @@ import time
 
 # ============================
 # CONFIG NODE-RED
-# =============================
+# ============================
 NODE_RED_CMD_URL = "https://nodered.david.work.gd/api/control"  # POST
 NODE_RED_DATA_URL = "https://nodered.david.work.gd/api/data"   # GET
 
 st.set_page_config(page_title="Commande Aération", layout="centered")
 st.title("🌀 Commande du système d’aération")
 
-# =============================
+# ============================
 # MÉMOIRE STREAMLIT
-# =============================
+# ============================
 if "system_state" not in st.session_state:
     st.session_state.system_state = 0  # 0 = arrêt
 if "last_cmd" not in st.session_state:
@@ -21,12 +21,12 @@ if "last_cmd" not in st.session_state:
 if "last_send_time" not in st.session_state:
     st.session_state.last_send_time = 0
 
-# =============================
+# ============================
 # LECTURE DES DONNÉES
-# =============================
-# =============================
+# ============================
+# ============================
 # LECTURE DES DONNÉES NODE-RED
-# =============================
+# ============================
 st.header("📊 Données environnementales")
 
 try:
@@ -37,6 +37,10 @@ try:
     hum  = data.get("humidite")
     co2  = data.get("co2")
     mode = data.get("mode", "—")
+
+    # Si le mode est ARRET, réinitialiser les valeurs
+    if mode == "ARRET":
+        temp, hum, co2 = None, None, None
 
     col1, col2, col3 = st.columns(3)
 
@@ -60,13 +64,11 @@ try:
 except Exception as e:
     st.error("❌ Impossible de récupérer les données depuis Node-RED")
 
-
-
 st.divider()
 
-# =============================
+# ============================
 # COMMANDE SYSTEME
-# =============================
+# ============================
 st.header("🎛 Commande")
 
 system_on = st.toggle(
@@ -74,12 +76,12 @@ system_on = st.toggle(
     value=bool(st.session_state.system_state)
 )
 
-adm_speed = st.slider("Ventilateur admission (%)", 0, 100, 50)
-ext_speed = st.slider("Ventilateur extraction (%)", 0, 100, 50)
+adm_speed = st.slider("Ventilateur admission (%)", 0, 100, 0)
+ext_speed = st.slider("Ventilateur extraction (%)", 0, 100, 0)
 
-# =============================
+# ============================
 # BOUTON ENVOI
-# =============================
+# ============================
 if st.button("📤 Envoyer la commande"):
     payload = {
         "system": int(system_on),
@@ -106,4 +108,3 @@ if st.button("📤 Envoyer la commande"):
             st.error("❌ Node-RED injoignable")
     else:
         st.info("ℹ️ Commande identique ignorée")
-
