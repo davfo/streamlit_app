@@ -27,21 +27,22 @@ if "last_send_time" not in st.session_state:
 # ============================
 # LECTURE DES DONNÉES NODE-RED
 # ============================
-st.header("📊 Données environnementale")
+st.header("📊 Données environnementales")
 
 try:
     r = requests.get(NODE_RED_DATA_URL, timeout=2)
     data = r.json()
 
+    mode = data.get("mode", "—")  # Récupérer le mode du système
     temp = data.get("temperature")
     hum  = data.get("humidite")
     co2  = data.get("co2")
-    mode = data.get("mode", "—")
 
-    # Si le mode est ARRET, réinitialiser les valeurs
+    # Si le mode est ARRET, réinitialiser les données à "None"
     if mode == "ARRET":
         temp, hum, co2 = None, None, None
 
+    # Affichage des données
     col1, col2, col3 = st.columns(3)
 
     col1.metric(
@@ -59,6 +60,7 @@ try:
         f"{co2}" if isinstance(co2, (int, float)) else "--"
     )
 
+    # Affichage du mode actuel
     st.info(f"Mode actuel : **{mode}**")
 
 except Exception as e:
