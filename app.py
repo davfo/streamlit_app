@@ -27,7 +27,7 @@ if "last_send_time" not in st.session_state:
 # ============================
 # LECTURE DES DONNÉES NODE-RED
 # ============================
-st.header("📊 Données environnementales")
+st.header("📊 Données environnementale")
 
 try:
     r = requests.get(NODE_RED_DATA_URL, timeout=2)
