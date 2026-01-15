@@ -69,7 +69,7 @@ if data:
 
     col2.metric(
         "💧 Humidité (%)",
-        f"{hum:.0f}" if isinstance(hum, (int, float)) else "--"
+        f"{hum:.1f}" if isinstance(hum, (int, float)) else "--"
     )
 
     col3.metric(
