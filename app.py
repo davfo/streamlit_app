@@ -12,44 +12,41 @@ st.set_page_config(page_title="Commande Aération", layout="centered")
 st.title("🌀 Commande du système d’aération")
 
 # ============================
-# MÉMOIRE STREAMLIT
+# SESSION STATE (PERSISTANCE)
 # ============================
 if "system_state" not in st.session_state:
     st.session_state.system_state = 0  # 0 = arrêt
+if "adm_speed" not in st.session_state:
+    st.session_state.adm_speed = 0
+if "ext_speed" not in st.session_state:
+    st.session_state.ext_speed = 0
 if "last_cmd" not in st.session_state:
     st.session_state.last_cmd = None
-if "last_send_time" not in st.session_state:
-    st.session_state.last_send_time = 0
 
 # ============================
-# LECTURE DES DONNÉES
+# LECTURE DES DONNÉES (SANS CACHE)
 # ============================
-
-# ============================
-# CACHER LA FONCTION POUR RÉCUPÉRER LES DONNÉES
-# ============================
-@st.cache
 def get_data():
     try:
         r = requests.get(NODE_RED_DATA_URL, timeout=2)
         return r.json()
-    except Exception as e:
-        st.error("❌ Impossible de récupérer les données depuis Node-RED")
+    except:
         return {}
 
-# Récupérer les données de Node-RED
 data = get_data()
 
-mode = data.get("mode", "—")  # Récupérer le mode du système
+mode = data.get("mode", "—")
 temp = data.get("temperature")
 hum  = data.get("humidite")
 co2  = data.get("co2")
 
-# Si le mode est ARRET, réinitialiser les données à "None"
+# Si ARRET → masquer les mesures
 if mode == "ARRET":
     temp, hum, co2 = None, None, None
 
-# Affichage des données
+# ============================
+# AFFICHAGE DONNÉES
+# ============================
 st.header("📊 Données environnementales")
 col1, col2, col3 = st.columns(3)
 
@@ -68,51 +65,66 @@ col3.metric(
     f"{co2}" if isinstance(co2, (int, float)) else "--"
 )
 
-# Affichage du mode actuel
+# Affichage mode (AUTO / AUTO-CO2 / AUTO-TH / MANUEL / ARRET)
 st.info(f"Mode actuel : **{mode}**")
 
 st.divider()
 
 # ============================
-# COMMANDE SYSTEME
+# COMMANDE UTILISATEUR
 # ============================
-st.header("🎛 Commande")
+st.header("🎛 Commande du système")
 
-# Utilisation de 2 boutons pour activer ou désactiver le système
-if st.button("Allumer le système"):
-    system_on = True
-elif st.button("Éteindre le système"):
-    system_on = False
-else:
-    system_on = bool(st.session_state.system_state)  # Maintenir l'état actuel
+col_on, col_off = st.columns(2)
 
-# Slider pour les vitesses des ventilateurs
-adm_speed = st.slider("Ventilateur admission (%)", 0, 100, 0)
-ext_speed = st.slider("Ventilateur extraction (%)", 0, 100, 0)
+with col_on:
+    if st.button("🟢 Allumer"):
+        st.session_state.system_state = 1
 
-# Créer la payload pour envoyer à Node-RED
+with col_off:
+    if st.button("🔴 Éteindre"):
+        st.session_state.system_state = 0
+
+# Sliders avec persistance
+adm_speed = st.slider(
+    "Ventilateur admission (%)",
+    0, 100,
+    st.session_state.adm_speed,
+    key="adm_speed"
+)
+
+ext_speed = st.slider(
+    "Ventilateur extraction (%)",
+    0, 100,
+    st.session_state.ext_speed,
+    key="ext_speed"
+)
+
+# Payload de commande
 payload = {
-    "system": int(system_on),
+    "system": st.session_state.system_state,
     "adm_speed": adm_speed,
     "ext_speed": ext_speed
 }
 
-now = time.time()
-
-# 🔒 PROTECTION CONTRE LES ENVOIS EN BOUCLE
-if payload != st.session_state.last_cmd and now - st.session_state.last_send_time > 2:
+# ============================
+# ENVOI UNIQUEMENT SUR CLIC
+# ============================
+if st.button("📤 Envoyer la commande"):
     try:
         res = requests.post(NODE_RED_CMD_URL, json=payload, timeout=2)
-
         if res.status_code == 200:
-            st.success("✅ Commande envoyée")
+            st.success("✅ Commande envoyée avec succès")
             st.session_state.last_cmd = payload
-            st.session_state.last_send_time = now
-            st.session_state.system_state = int(system_on)
         else:
             st.error("❌ Erreur côté Node-RED")
-
-    except Exception:
+    except:
         st.error("❌ Node-RED injoignable")
-else:
-    st.info("ℹ️ Commande identique ignorée")
+
+# ============================
+# INFO ÉTAT LOCAL
+# ============================
+st.caption(
+    f"État demandé : {'ON' if st.session_state.system_state else 'OFF'} | "
+    f"Adm: {adm_speed}% | Ext: {ext_speed}%"
+)
