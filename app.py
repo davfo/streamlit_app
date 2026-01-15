@@ -1,7 +1,9 @@
 import streamlit as st
 import requests
 import time
-from streamlit_autorefresh import st_autorefresh  # Importation de la fonction d'auto-refresh
+from streamlit_autorefresh import st_autorefresh
+
+
 
 # ============================
 # CONFIG NODE-RED
