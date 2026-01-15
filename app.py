@@ -110,4 +110,36 @@ ext_speed = st.slider(
     "Ventilateur extraction (%)",
     0, 100,
     st.session_state.ext_speed,
-    key="
+    key="ext_speed"
+)
+
+payload = {
+    "system": st.session_state.system_state,
+    "adm_speed": adm_speed,
+    "ext_speed": ext_speed
+}
+
+# ============================
+# ENVOI UNIQUEMENT SUR CLIC
+# ============================
+if st.button("📤 Envoyer la commande"):
+    if payload != st.session_state.last_cmd:
+        try:
+            res = requests.post(NODE_RED_CMD_URL, json=payload, timeout=2)
+            if res.status_code == 200:
+                st.success("✅ Commande envoyée")
+                st.session_state.last_cmd = payload
+            else:
+                st.error("❌ Erreur Node-RED")
+        except:
+            st.error("❌ Node-RED injoignable")
+    else:
+        st.info("ℹ️ Commande identique ignorée")
+
+# ============================
+# INFO ÉTAT LOCAL
+# ============================
+st.caption(
+    f"État demandé : {'ON' if st.session_state.system_state else 'OFF'} | "
+    f"Adm: {adm_speed}% | Ext: {ext_speed}%"
+)
