@@ -1,9 +1,7 @@
 import streamlit as st
 import requests
 import time
-from streamlit_autorefresh import st_autorefresh
-
-
+from streamlit_autorefresh import st_autorefresh  # Utilisation de st_autorefresh
 
 # ============================
 # CONFIG NODE-RED
@@ -29,7 +27,7 @@ if "last_cmd" not in st.session_state:
 # ============================
 # Rafraîchissement automatique des données toutes les 2 secondes
 # ============================
-st_autorefresh(interval=2000, key="refresh")  # Actualisation tous les 2 secondes
+st_autorefresh(interval=2000, key="refresh")  # Actualisation toutes les 2 secondes
 
 # ============================
 # LECTURE DES DONNÉES (SANS CACHE)
@@ -66,29 +64,30 @@ if data:
     if mode == "ARRET":
         temp, hum, co2 = None, None, None
 
-    # Affichage des données
-    st.header("📊 Données environnementales")
-    col1, col2, col3 = st.columns(3)
+    # Création d'un conteneur vide pour éviter les redessins multiples
+    with st.empty():
+        st.header("📊 Données environnementales")
+        col1, col2, col3 = st.columns(3)
 
-    col1.metric(
-        "🌡 Température (°C)",
-        f"{temp:.1f}" if isinstance(temp, (int, float)) else "--"
-    )
+        col1.metric(
+            "🌡 Température (°C)",
+            f"{temp:.1f}" if isinstance(temp, (int, float)) else "--"
+        )
 
-    col2.metric(
-        "💧 Humidité (%)",
-        f"{hum:.1f}" if isinstance(hum, (int, float)) else "--"
-    )
+        col2.metric(
+            "💧 Humidité (%)",
+            f"{hum:.1f}" if isinstance(hum, (int, float)) else "--"
+        )
 
-    col3.metric(
-        "🫁 CO₂ (ppm)",
-        f"{co2}" if isinstance(co2, (int, float)) else "--"
-    )
+        col3.metric(
+            "🫁 CO₂ (ppm)",
+            f"{co2}" if isinstance(co2, (int, float)) else "--"
+        )
 
-    # Affichage du mode actuel
-    st.info(f"Mode actuel : **{mode}**")
+        # Affichage du mode actuel
+        st.info(f"Mode actuel : **{mode}**")
 
-    st.divider()
+        st.divider()
 
 # ============================
 # COMMANDE UTILISATEUR
