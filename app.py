@@ -1,9 +1,6 @@
 import streamlit as st
 import requests
-import time
 from streamlit_autorefresh import st_autorefresh
-
-
 
 # ============================
 # CONFIG NODE-RED
@@ -18,18 +15,20 @@ st.title("🌀 Commande du système d’aération")
 # SESSION STATE (PERSISTANCE)
 # ============================
 if "system_state" not in st.session_state:
-    st.session_state.system_state = 0  # 0 = arrêt
+    st.session_state.system_state = 0
 if "adm_speed" not in st.session_state:
     st.session_state.adm_speed = 0
 if "ext_speed" not in st.session_state:
     st.session_state.ext_speed = 0
 if "last_cmd" not in st.session_state:
     st.session_state.last_cmd = None
+if "last_data" not in st.session_state:
+    st.session_state.last_data = {}
 
 # ============================
-# Rafraîchissement automatique des données toutes les 2 secondes
+# AUTO-REFRESH (30 secondes)
 # ============================
-st_autorefresh(interval=30000, key="refresh")  # Actualisation tous les 2 secondes
+st_autorefresh(interval=30000, key="refresh")
 
 # ============================
 # LECTURE DES DONNÉES (SANS CACHE)
@@ -38,57 +37,52 @@ def get_data():
     try:
         r = requests.get(NODE_RED_DATA_URL, timeout=2)
         return r.json()
-    except Exception as e:
-        st.error(f"❌ Impossible de récupérer les données depuis Node-RED: {e}")
-        return {}
+    except:
+        return None
 
-# Fonction pour vérifier si les données ont changé
-def check_for_update():
+def update_data():
     new_data = get_data()
-    if new_data != st.session_state.get("last_data", {}):
-        st.session_state["last_data"] = new_data
-        return new_data
-    return None
-
-# Récupérer les données de Node-RED
-data = check_for_update()
+    if new_data:
+        st.session_state.last_data = new_data
+    return st.session_state.last_data
 
 # ============================
-# AFFICHAGE DONNÉES
+# DONNÉES ACTUELLES
 # ============================
-if data:
-    mode = data.get("mode", "—")
-    temp = data.get("temperature")
-    hum  = data.get("humidite")
-    co2  = data.get("co2")
+data = update_data()
 
-    # Si le mode est ARRET, réinitialiser les données à "None"
-    if mode == "ARRET":
-        temp, hum, co2 = None, None, None
+mode = data.get("mode", "—")
+temp = data.get("temperature")
+hum  = data.get("humidite")
+co2  = data.get("co2")
 
-    # Affichage des données
-    st.header("📊 Données environnementales")
-    col1, col2, col3 = st.columns(3)
+if mode == "ARRET":
+    temp, hum, co2 = None, None, None
 
-    col1.metric(
-        "🌡 Température (°C)",
-        f"{temp:.1f}" if isinstance(temp, (int, float)) else "--"
-    )
+# ============================
+# AFFICHAGE DONNÉES (STABLE)
+# ============================
+st.header("📊 Données environnementales")
 
-    col2.metric(
-        "💧 Humidité (%)",
-        f"{hum:.1f}" if isinstance(hum, (int, float)) else "--"
-    )
+col1, col2, col3 = st.columns(3)
 
-    col3.metric(
-        "🫁 CO₂ (ppm)",
-        f"{co2}" if isinstance(co2, (int, float)) else "--"
-    )
+col1.metric(
+    "🌡 Température (°C)",
+    f"{temp:.1f}" if isinstance(temp, (int, float)) else "--"
+)
 
-    # Affichage du mode actuel
-    st.info(f"Mode actuel : **{mode}**")
+col2.metric(
+    "💧 Humidité (%)",
+    f"{hum:.1f}" if isinstance(hum, (int, float)) else "--"
+)
 
-    st.divider()
+col3.metric(
+    "🫁 CO₂ (ppm)",
+    f"{co2}" if isinstance(co2, (int, float)) else "--"
+)
+
+st.info(f"Mode actuel : **{mode}**")
+st.divider()
 
 # ============================
 # COMMANDE UTILISATEUR
@@ -105,7 +99,6 @@ with col_off:
     if st.button("🔴 Éteindre"):
         st.session_state.system_state = 0
 
-# Sliders avec persistance
 adm_speed = st.slider(
     "Ventilateur admission (%)",
     0, 100,
@@ -117,38 +110,4 @@ ext_speed = st.slider(
     "Ventilateur extraction (%)",
     0, 100,
     st.session_state.ext_speed,
-    key="ext_speed"
-)
-
-# Payload de commande
-payload = {
-    "system": st.session_state.system_state,
-    "adm_speed": adm_speed,
-    "ext_speed": ext_speed
-}
-
-# ============================
-# ENVOI UNIQUEMENT SUR CLIC
-# ============================
-if st.button("📤 Envoyer la commande"):
-    # Vérifier si les commandes sont modifiées avant d'envoyer
-    if payload != st.session_state.last_cmd:
-        try:
-            res = requests.post(NODE_RED_CMD_URL, json=payload, timeout=2)
-            if res.status_code == 200:
-                st.success("✅ Commande envoyée avec succès")
-                st.session_state.last_cmd = payload
-            else:
-                st.error("❌ Erreur côté Node-RED")
-        except:
-            st.error("❌ Node-RED injoignable")
-    else:
-        st.info("ℹ️ Les commandes n'ont pas changé. Aucune commande envoyée.")
-
-# ============================
-# INFO ÉTAT LOCAL
-# ============================
-st.caption(
-    f"État demandé : {'ON' if st.session_state.system_state else 'OFF'} | "
-    f"Adm: {adm_speed}% | Ext: {ext_speed}%"
-)
+    key="
