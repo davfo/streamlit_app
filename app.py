@@ -123,19 +123,15 @@ payload = {
 # ENVOI UNIQUEMENT SUR CLIC
 # ============================
 if st.button("📤 Envoyer la commande"):
-    # Vérifier si les commandes sont modifiées avant d'envoyer
-    if payload != st.session_state.last_cmd:
-        try:
-            res = requests.post(NODE_RED_CMD_URL, json=payload, timeout=2)
-            if res.status_code == 200:
-                st.success("✅ Commande envoyée avec succès")
-                st.session_state.last_cmd = payload
-            else:
-                st.error("❌ Erreur côté Node-RED")
-        except:
-            st.error("❌ Node-RED injoignable")
-    else:
-        st.info("ℹ️ Les commandes n'ont pas changé. Aucune commande envoyée.")
+    try:
+        res = requests.post(NODE_RED_CMD_URL, json=payload, timeout=2)
+        if res.status_code == 200:
+            st.success("✅ Commande envoyée avec succès")
+            st.session_state.last_cmd = payload
+        else:
+            st.error("❌ Erreur côté Node-RED")
+    except:
+        st.error("❌ Node-RED injoignable")
 
 # ============================
 # INFO ÉTAT LOCAL
