@@ -27,7 +27,7 @@ if "last_cmd" not in st.session_state:
 # ============================
 # Rafraîchissement automatique des données toutes les 2 secondes
 # ============================
-st_autorefresh(interval=2000, key="refresh")  # Actualisation toutes les 2 secondes
+st_autorefresh(interval=30000, key="refresh")  # Actualisation toutes les 2 secondes
 
 # ============================
 # LECTURE DES DONNÉES (SANS CACHE)
