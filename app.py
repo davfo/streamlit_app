@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import time
+from streamlit_autorefresh import st_autorefresh  # Importation de la fonction d'auto-refresh
 
 # ============================
 # CONFIG NODE-RED
@@ -22,6 +23,11 @@ if "ext_speed" not in st.session_state:
     st.session_state.ext_speed = 0
 if "last_cmd" not in st.session_state:
     st.session_state.last_cmd = None
+
+# ============================
+# Rafraîchissement automatique des données toutes les 2 secondes
+# ============================
+st_autorefresh(interval=2000, key="refresh")  # Actualisation tous les 2 secondes
 
 # ============================
 # LECTURE DES DONNÉES (SANS CACHE)
@@ -123,15 +129,19 @@ payload = {
 # ENVOI UNIQUEMENT SUR CLIC
 # ============================
 if st.button("📤 Envoyer la commande"):
-    try:
-        res = requests.post(NODE_RED_CMD_URL, json=payload, timeout=2)
-        if res.status_code == 200:
-            st.success("✅ Commande envoyée avec succès")
-            st.session_state.last_cmd = payload
-        else:
-            st.error("❌ Erreur côté Node-RED")
-    except:
-        st.error("❌ Node-RED injoignable")
+    # Vérifier si les commandes sont modifiées avant d'envoyer
+    if payload != st.session_state.last_cmd:
+        try:
+            res = requests.post(NODE_RED_CMD_URL, json=payload, timeout=2)
+            if res.status_code == 200:
+                st.success("✅ Commande envoyée avec succès")
+                st.session_state.last_cmd = payload
+            else:
+                st.error("❌ Erreur côté Node-RED")
+        except:
+            st.error("❌ Node-RED injoignable")
+    else:
+        st.info("ℹ️ Les commandes n'ont pas changé. Aucune commande envoyée.")
 
 # ============================
 # INFO ÉTAT LOCAL
@@ -140,6 +150,3 @@ st.caption(
     f"État demandé : {'ON' if st.session_state.system_state else 'OFF'} | "
     f"Adm: {adm_speed}% | Ext: {ext_speed}%"
 )
-
-# Rafraîchissement automatique toutes les 2 secondes (intervalle choisi)
-time.sleep(2)
