@@ -30,45 +30,57 @@ def get_data():
     try:
         r = requests.get(NODE_RED_DATA_URL, timeout=2)
         return r.json()
-    except:
+    except Exception as e:
+        st.error(f"❌ Impossible de récupérer les données depuis Node-RED: {e}")
         return {}
 
-data = get_data()
+# Fonction pour vérifier si les données ont changé
+def check_for_update():
+    new_data = get_data()
+    if new_data != st.session_state.get("last_data", {}):
+        st.session_state["last_data"] = new_data
+        return new_data
+    return None
 
-mode = data.get("mode", "—")
-temp = data.get("temperature")
-hum  = data.get("humidite")
-co2  = data.get("co2")
-
-# Si ARRET → masquer les mesures
-if mode == "ARRET":
-    temp, hum, co2 = None, None, None
+# Récupérer les données de Node-RED
+data = check_for_update()
 
 # ============================
 # AFFICHAGE DONNÉES
 # ============================
-st.header("📊 Données environnementales")
-col1, col2, col3 = st.columns(3)
+if data:
+    mode = data.get("mode", "—")
+    temp = data.get("temperature")
+    hum  = data.get("humidite")
+    co2  = data.get("co2")
 
-col1.metric(
-    "🌡 Température (°C)",
-    f"{temp:.1f}" if isinstance(temp, (int, float)) else "--"
-)
+    # Si le mode est ARRET, réinitialiser les données à "None"
+    if mode == "ARRET":
+        temp, hum, co2 = None, None, None
 
-col2.metric(
-    "💧 Humidité (%)",
-    f"{hum:.0f}" if isinstance(hum, (int, float)) else "--"
-)
+    # Affichage des données
+    st.header("📊 Données environnementales")
+    col1, col2, col3 = st.columns(3)
 
-col3.metric(
-    "🫁 CO₂ (ppm)",
-    f"{co2}" if isinstance(co2, (int, float)) else "--"
-)
+    col1.metric(
+        "🌡 Température (°C)",
+        f"{temp:.1f}" if isinstance(temp, (int, float)) else "--"
+    )
 
-# Affichage mode (AUTO / AUTO-CO2 / AUTO-TH / MANUEL / ARRET)
-st.info(f"Mode actuel : **{mode}**")
+    col2.metric(
+        "💧 Humidité (%)",
+        f"{hum:.0f}" if isinstance(hum, (int, float)) else "--"
+    )
 
-st.divider()
+    col3.metric(
+        "🫁 CO₂ (ppm)",
+        f"{co2}" if isinstance(co2, (int, float)) else "--"
+    )
+
+    # Affichage du mode actuel
+    st.info(f"Mode actuel : **{mode}**")
+
+    st.divider()
 
 # ============================
 # COMMANDE UTILISATEUR
@@ -111,15 +123,19 @@ payload = {
 # ENVOI UNIQUEMENT SUR CLIC
 # ============================
 if st.button("📤 Envoyer la commande"):
-    try:
-        res = requests.post(NODE_RED_CMD_URL, json=payload, timeout=2)
-        if res.status_code == 200:
-            st.success("✅ Commande envoyée avec succès")
-            st.session_state.last_cmd = payload
-        else:
-            st.error("❌ Erreur côté Node-RED")
-    except:
-        st.error("❌ Node-RED injoignable")
+    # Vérifier si les commandes sont modifiées avant d'envoyer
+    if payload != st.session_state.last_cmd:
+        try:
+            res = requests.post(NODE_RED_CMD_URL, json=payload, timeout=2)
+            if res.status_code == 200:
+                st.success("✅ Commande envoyée avec succès")
+                st.session_state.last_cmd = payload
+            else:
+                st.error("❌ Erreur côté Node-RED")
+        except:
+            st.error("❌ Node-RED injoignable")
+    else:
+        st.info("ℹ️ Les commandes n'ont pas changé. Aucune commande envoyée.")
 
 # ============================
 # INFO ÉTAT LOCAL
@@ -128,3 +144,6 @@ st.caption(
     f"État demandé : {'ON' if st.session_state.system_state else 'OFF'} | "
     f"Adm: {adm_speed}% | Ext: {ext_speed}%"
 )
+
+# Rafraîchissement automatique toutes les 2 secondes (intervalle choisi)
+time.sleep(2)
