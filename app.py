@@ -15,7 +15,7 @@ st.title("🌀 Commande du système d’aération")
 # SESSION STATE (PERSISTANCE)
 # ============================
 if "system_state" not in st.session_state:
-    st.session_state.system_state = 0
+    st.session_state.system_state = False  # OFF
 if "adm_speed" not in st.session_state:
     st.session_state.adm_speed = 0
 if "ext_speed" not in st.session_state:
@@ -26,12 +26,36 @@ if "last_data" not in st.session_state:
     st.session_state.last_data = {}
 
 # ============================
-# AUTO-REFRESH (30 secondes)
+# AUTO-REFRESH (LECTURE SEULE)
 # ============================
-st_autorefresh(interval=30000, key="refresh")
+st_autorefresh(interval=30000, key="refresh")  # 30 s
 
 # ============================
-# LECTURE DES DONNÉES (SANS CACHE)
+# FONCTION D’ENVOI SÉCURISÉE
+# ============================
+def send_command():
+    payload = {
+        "system": int(st.session_state.system_state),
+        "adm_speed": st.session_state.adm_speed,
+        "ext_speed": st.session_state.ext_speed
+    }
+
+    # ⛔ Anti-doublon
+    if payload == st.session_state.last_cmd:
+        return
+
+    try:
+        res = requests.post(NODE_RED_CMD_URL, json=payload, timeout=2)
+        if res.status_code == 200:
+            st.session_state.last_cmd = payload
+            st.toast("✅ Commande envoyée", icon="✅")
+        else:
+            st.toast("❌ Erreur Node-RED", icon="❌")
+    except:
+        st.toast("❌ Node-RED injoignable", icon="⚠️")
+
+# ============================
+# LECTURE DES DONNÉES
 # ============================
 def get_data():
     try:
@@ -85,61 +109,37 @@ st.info(f"Mode actuel : **{mode}**")
 st.divider()
 
 # ============================
-# COMMANDE UTILISATEUR
+# COMMANDE UTILISATEUR (AUTO-ENVOI)
 # ============================
 st.header("🎛 Commande du système")
 
-col_on, col_off = st.columns(2)
+# Toggle ON/OFF
+st.toggle(
+    "🟢 Système actif",
+    key="system_state",
+    on_change=send_command
+)
 
-with col_on:
-    if st.button("🟢 Allumer"):
-        st.session_state.system_state = 1
-
-with col_off:
-    if st.button("🔴 Éteindre"):
-        st.session_state.system_state = 0
-
-adm_speed = st.slider(
+# Sliders avec callback
+st.slider(
     "Ventilateur admission (%)",
     0, 100,
-    st.session_state.adm_speed,
-    key="adm_speed"
+    key="adm_speed",
+    on_change=send_command
 )
 
-ext_speed = st.slider(
+st.slider(
     "Ventilateur extraction (%)",
     0, 100,
-    st.session_state.ext_speed,
-    key="ext_speed"
+    key="ext_speed",
+    on_change=send_command
 )
-
-payload = {
-    "system": st.session_state.system_state,
-    "adm_speed": adm_speed,
-    "ext_speed": ext_speed
-}
-
-# ============================
-# ENVOI UNIQUEMENT SUR CLIC
-# ============================
-if st.button("📤 Envoyer la commande"):
-    if payload != st.session_state.last_cmd:
-        try:
-            res = requests.post(NODE_RED_CMD_URL, json=payload, timeout=2)
-            if res.status_code == 200:
-                st.success("✅ Commande envoyée")
-                st.session_state.last_cmd = payload
-            else:
-                st.error("❌ Erreur Node-RED")
-        except:
-            st.error("❌ Node-RED injoignable")
-    else:
-        st.info("ℹ️ Commande identique ignorée")
 
 # ============================
 # INFO ÉTAT LOCAL
 # ============================
 st.caption(
     f"État demandé : {'ON' if st.session_state.system_state else 'OFF'} | "
-    f"Adm: {adm_speed}% | Ext: {ext_speed}%"
+    f"Adm: {st.session_state.adm_speed}% | "
+    f"Ext: {st.session_state.ext_speed}%"
 )
